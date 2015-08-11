@@ -44,10 +44,10 @@ using namespace std;
 class s3000node {
 
 public:
-  SickS3000 *laser; 
+  SickS3000 *laser;
   sensor_msgs::LaserScan reading;
 
-  string port;
+  string port_;
 
   self_test::TestRunner self_test_;
   diagnostic_updater::Updater diagnostic_;
@@ -60,42 +60,40 @@ public:
   bool publish_tf;
   tf::TransformBroadcaster laser_broadcaster;
 
-  bool running;
-  
-  int error_count_;
-  int slow_count_;
-  std::string was_slow_;
-  std::string error_status_;
+  //for diagnostics
+  bool connected_;
+  bool getting_data_;
 
   string frameid_;
   
   double desired_freq_;
   diagnostic_updater::FrequencyStatus freq_diag_;
 
+
   s3000node(ros::NodeHandle h) : self_test_(), diagnostic_(), 
-  node_handle_(h), private_node_handle_("~"), 
-  error_count_(0), 
-  slow_count_(0), 
-  desired_freq_(20), 
-  freq_diag_(diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.05))
+    node_handle_(h), private_node_handle_("~"), 
+    desired_freq_(20), 
+    connected_(false), 
+    getting_data_(false), 
+    freq_diag_(diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.05))
   {
     ros::NodeHandle laser_node_handle(node_handle_, "s3000_laser");
-        private_node_handle_.param("port", port, string("/dev/ttyUSB0"));
 
-    private_node_handle_.param<bool> ("publish_tf", publish_tf, false);
-    laser_data_pub_ = laser_node_handle.advertise<sensor_msgs::LaserScan>("scan", 100);
-    running = false;
-    private_node_handle_.param("frame_id", frameid_, string("laser"));
     reading.header.frame_id = frameid_;
-        
-    self_test_.add("Connect Test", this, &s3000node::ConnectTest);
+    ros::param::param<std::string>("port", port_, string("/dev/ttyUSB0"));
+    ros::param::param<bool> ("publish_tf", publish_tf, false);
+    ros::param::param<std::string>("frame_id", frameid_, string("laser"));
 
+    laser_data_pub_ = laser_node_handle.advertise<sensor_msgs::LaserScan>("scan", 100);
+
+    self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
     diagnostic_.add( freq_diag_ );
     diagnostic_.add( "Laser S3000 Status", this, &s3000node::deviceStatus );
     
     // Create SickS3000 in the given port
-    laser = new SickS3000( port );
+    laser = new SickS3000( port_ );
    }
+
 
   ~s3000node()
   {
@@ -106,21 +104,32 @@ public:
   int start()
   {
     stop();
-    laser->Open();
-    diagnostic_.setHardwareID("Laser Ranger");
-    ROS_INFO("Laser Ranger sensor initialized.");
-    freq_diag_.clear();
-    running = true;
+
+    if (laser->Open() == 0)
+    {
+      diagnostic_.setHardwareID("Laser Ranger");
+      ROS_INFO("Laser Ranger sensor initialized.");
+      freq_diag_.clear();
+      connected_ = true;
+    }
+    else
+    {
+      ROS_ERROR("Laser Ranger sensor initialization failed.");
+      connected_ = false;
+      diagnostic_.force_update();
+      return (-1);
+    }
+
     return(0);
   }
 
 
   int stop()
   {
-    if(running)
+    if(connected_)
     {
         laser->Close();
-        running = false;
+        connected_ = false;
     }
 
     return(0);
@@ -129,62 +138,71 @@ public:
 
   void ConnectTest(diagnostic_updater::DiagnosticStatusWrapper& status)
   {
-    laser->Open();
-    status.summary(0, "Connected successfully.");
+    if (laser->Open() == 0)
+    {
+      status.summary(diagnostic_msgs::DiagnosticStatus::OK, "Connected successfully.");
+    }
+    else
+    {
+      status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Connection unsuccessful.");
+    }
   }
 
-  void getData(sensor_msgs::LaserScan& data)
+
+  int getData(sensor_msgs::LaserScan& data)
   {
     bool bValidData = false;
 
-    laser->ReadLaser( data, bValidData );
+    if (laser->ReadLaser( data, bValidData ) < 0)
+    {
+      return (-1);
+    }
 
     //// If valid data, publish it
-    if (bValidData) {
-    	data.header.stamp = ros::Time::now();
-	laser_data_pub_.publish( data );
-	}
+    if (bValidData)
+    {
+      data.header.stamp = ros::Time::now();
+      laser_data_pub_.publish( data );
+      freq_diag_.tick();
+      getting_data_ = true;
+    }
+    else
+    {
+      getting_data_ = false;
+    }
 
-/*
-    // Robotnik - to test unit
-    if (publish_tf) {
-	// create a tf message
-	geometry_msgs::TransformStamped imu_trans;
-	imu_trans.header.stamp = data.header.stamp;
-	imu_trans.header.frame_id = "laser";   //odom_frame_id.c_str();
-	imu_trans.child_frame_id = "base_link";
-	imu_trans.transform.translation.x = 0.0;
-	imu_trans.transform.translation.y = 0.0;
-	imu_trans.transform.translation.z = 0.0;
-	imu_trans.transform.rotation = data.orientation;
-	//send the transform
-	imu_broadcaster.sendTransform(imu_trans);
-        }
-*/  
+    return (0);
+  }
 
-}
 
   bool spin()
   {
-
-    // sensor_msgs::LaserScan data;
     ros::Rate r(desired_freq_);
 
-    while (!ros::isShuttingDown()) // Using ros::isShuttingDown to avoid restarting the node during a shutdown.
+    // Using ros::isShuttingDown to avoid restarting the node during a shutdown.
+    while (!ros::isShuttingDown())
     {
       if (start() == 0)
       {
-        while(node_handle_.ok()) {
-          //if(publish_datum() < 0)	
-          //  break;
-          getData( reading );           
+        while(node_handle_.ok())
+        {
+          if (getData(reading) == -1) //Error reading from port
+          {
+            connected_ = false;
+          }
+          else
+          {
+            connected_ = true;
+          }
 
           self_test_.checkTest();
           diagnostic_.update();
           ros::spinOnce();
-	  r.sleep();          
+          r.sleep();
         }
-      } else {
+      }
+      else
+      {
         // No need for diagnostic here since a broadcast occurs in start
         // when there is an error.
         usleep(1000000);
@@ -201,26 +219,25 @@ public:
 
   void deviceStatus(diagnostic_updater::DiagnosticStatusWrapper &status)
   {
-    if (!running)
-      status.summary(2, "Laser Ranger is stopped");
-    else if (!was_slow_.empty())
+    if (!connected_)
     {
-      status.summary(1, "Excessive delay");
-      was_slow_.clear();
+      status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Lidar is not connected");
+    }
+    else if (!getting_data_)
+    {
+      status.summary(diagnostic_msgs::DiagnosticStatus::WARN, "No valid data from lidar");
     }
     else
-      status.summary(0, "Laser Ranger is running");
+    {
+      status.summary(diagnostic_msgs::DiagnosticStatus::OK, "Lidar is running");
+    }
 
-    status.add("Device", port);
+    status.add("Device", port_);
     status.add("TF frame", frameid_);
-    status.add("Error count", error_count_);
-    status.add("Excessive delay", slow_count_);
   }
-
 };
 
-int
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
   ros::init(argc, argv, "s3000_node");
 
