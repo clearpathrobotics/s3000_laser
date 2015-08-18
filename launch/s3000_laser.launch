@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <param name="port" value="/dev/ttyUSB1" type="string"/>
+  <param name="~port" value="/dev/ttyUSB1" type="string"/>
   <node pkg="s3000_laser" type="s3000_laser" name="s3000_laser" output="screen" />
 </launch>

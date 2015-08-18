@@ -79,10 +79,10 @@ public:
   {
     ros::NodeHandle laser_node_handle(node_handle_, "s3000_laser");
 
+    private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
+    private_node_handle_.param<bool> ("publish_tf", publish_tf, false);
+    private_node_handle_.param("frame_id", frameid_, string("laser"));
     reading.header.frame_id = frameid_;
-    ros::param::param<std::string>("port", port_, string("/dev/ttyUSB0"));
-    ros::param::param<bool> ("publish_tf", publish_tf, false);
-    ros::param::param<std::string>("frame_id", frameid_, string("laser"));
 
     laser_data_pub_ = laser_node_handle.advertise<sensor_msgs::LaserScan>("scan", 100);
 
