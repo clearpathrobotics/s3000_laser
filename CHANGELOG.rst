@@ -2,8 +2,8 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.0 (2015-09-21)
+------------------
 * Merge pull request `#2 <https://github.com/clearpathrobotics/s3000_laser/issues/2>`_ from clearpathrobotics/igrrs-441-fix
   Reverted retrieval of params and fixed launch file
 * Updated launch file
