@@ -37,6 +37,7 @@
 #include "std_srvs/Empty.h"
 
 #include "std_msgs/Bool.h"
+#include "std_msgs/Empty.h"
 #include "tf/transform_broadcaster.h"
 
 using namespace std;
@@ -54,7 +55,7 @@ public:
 
   ros::NodeHandle node_handle_;
   ros::NodeHandle private_node_handle_;
-  ros::Publisher laser_data_pub_;
+  ros::Publisher laser_data_pub_, data_hz_pub_, ros_spin_hz_pub_;
 
   // publish its transform to base_link
   bool publish_tf;
@@ -85,6 +86,8 @@ public:
     reading.header.frame_id = frameid_;
 
     laser_data_pub_ = laser_node_handle.advertise<sensor_msgs::LaserScan>("scan", 100);
+    data_hz_pub_ = laser_node_handle.advertise<std_msgs::Empty>("data_hz", 100);
+    ros_spin_hz_pub_ = laser_node_handle.advertise<std_msgs::Empty>("ros_spin_hz", 100);
 
     self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
     diagnostic_.add( freq_diag_ );
@@ -158,6 +161,10 @@ public:
       return (-1);
     }
 
+    //Test (msafri): publish to topic to see if the issue is in the driver or lidar
+    std_msgs::Empty empty;
+    data_hz_pub_.publish(empty);
+
     //// If valid data, publish it
     if (bValidData)
     {
@@ -186,6 +193,9 @@ public:
       {
         while(node_handle_.ok())
         {
+          std_msgs::Empty empty;
+          ros_spin_hz_pub_.publish(empty);
+
           if (getData(reading) == -1) //Error reading from port
           {
             connected_ = false;
