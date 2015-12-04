@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
   self_test
   sensor_msgs
   std_srvs
-  tf
 )
 
 find_package(Boost REQUIRED COMPONENTS system)

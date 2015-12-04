@@ -37,7 +37,6 @@
 #include "std_srvs/Empty.h"
 
 #include "std_msgs/Bool.h"
-#include "tf/transform_broadcaster.h"
 
 using namespace std;
 
@@ -56,31 +55,26 @@ public:
   ros::NodeHandle private_node_handle_;
   ros::Publisher laser_data_pub_;
 
-  // publish its transform to base_link
-  bool publish_tf;
-  tf::TransformBroadcaster laser_broadcaster;
-
   //for diagnostics
   bool connected_;
   bool getting_data_;
 
   string frameid_;
-  
+
   double desired_freq_;
   diagnostic_updater::FrequencyStatus freq_diag_;
 
 
-  s3000node(ros::NodeHandle h) : self_test_(), diagnostic_(), 
-    node_handle_(h), private_node_handle_("~"), 
-    desired_freq_(20), 
-    connected_(false), 
-    getting_data_(false), 
+  s3000node(ros::NodeHandle h) : self_test_(), diagnostic_(),
+    node_handle_(h), private_node_handle_("~"),
+    desired_freq_(20),
+    connected_(false),
+    getting_data_(false),
     freq_diag_(diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.05))
   {
     ros::NodeHandle laser_node_handle(node_handle_, "s3000_laser");
 
     private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
-    private_node_handle_.param<bool> ("publish_tf", publish_tf, false);
     private_node_handle_.param("frame_id", frameid_, string("laser"));
     reading.header.frame_id = frameid_;
 
@@ -89,7 +83,7 @@ public:
     self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
     diagnostic_.add( freq_diag_ );
     diagnostic_.add( "Laser S3000 Status", this, &s3000node::deviceStatus );
-    
+
     // Create SickS3000 in the given port
     laser = new SickS3000( port_ );
    }

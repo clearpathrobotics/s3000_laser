@@ -14,5 +14,4 @@
   <depend>self_test</depend>
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>tf</depend>
 </package>
