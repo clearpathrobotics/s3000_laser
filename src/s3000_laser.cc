@@ -20,35 +20,28 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************/
 
-#include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <iostream>
-#include <boost/format.hpp>
 
-#include "sicks3000.h"   // s3000 driver from player (Toby Collet / Andrew Howard)
-#include "ros/time.h"
 #include "diagnostic_updater/DiagnosticStatusWrapper.h"
 #include "diagnostic_updater/diagnostic_updater.h"
 #include "diagnostic_updater/publisher.h"
 #include "diagnostic_updater/update_functions.h"
-
+#include "s3000_laser/sick_s3000.h"
+#include "ros/time.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
-
-#include "std_msgs/Bool.h"
 
 #define RADIANS(X) ((X) * 3.141592653589793 / 180.0)
 
 
-using namespace std;
-
-class s3000node {
+class S3000Node {
 
 public:
   boost::scoped_ptr<SickS3000> laser_;
   sensor_msgs::LaserScan scan_msg_;
 
-  string port_;
+  std::string port_;
 
   diagnostic_updater::Updater diagnostic_;
 
@@ -59,21 +52,21 @@ public:
   bool connected_;
   bool getting_data_;
 
-  string frameid_;
+  std::string frameid_;
 
   double desired_freq_;
 
   typedef diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan> LaserScanDiagnosedPublisher;
   boost::scoped_ptr<LaserScanDiagnosedPublisher> data_pub_;
 
-  s3000node(ros::NodeHandle h) :
+  S3000Node(ros::NodeHandle h) :
     node_handle_(h), private_node_handle_("~"),
     desired_freq_(16.6),
     connected_(false),
     getting_data_(false)
   {
-    private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
-    private_node_handle_.param("frame_id", frameid_, string("laser"));
+    private_node_handle_.param("port", port_, std::string("/dev/ttyUSB0"));
+    private_node_handle_.param("frame_id", frameid_, std::string("laser"));
 
     scan_msg_.header.frame_id = frameid_;
     scan_msg_.angle_min = static_cast<float>(RADIANS(-95.0));
@@ -82,7 +75,7 @@ public:
     scan_msg_.range_min = 0;
     scan_msg_.range_max = 52;  // TODO(mikepurvis): Confirm this value.
 
-    diagnostic_.add( "connection status", this, &s3000node::deviceStatus );
+    diagnostic_.add( "connection status", this, &S3000Node::deviceStatus );
 
     data_pub_.reset(new LaserScanDiagnosedPublisher(
           node_handle_.advertise<sensor_msgs::LaserScan>("scan", 1), diagnostic_,
@@ -93,7 +86,7 @@ public:
    }
 
 
-  ~s3000node()
+  ~S3000Node()
   {
     stop();
   }
@@ -221,8 +214,8 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh;
 
-  s3000node s3000n(nh);
-  s3000n.spin();
+  S3000Node node(nh);
+  node.spin();
 
   return(0);
 }

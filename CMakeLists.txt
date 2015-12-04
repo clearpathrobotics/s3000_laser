@@ -7,37 +7,23 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   self_test
   sensor_msgs
+  serial
   std_srvs
 )
 
-find_package(Boost REQUIRED COMPONENTS system)
-
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES s3000_laser SerialDevice
-)
+catkin_package()
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  external/SerialDevice/include/SerialDevice
 )
 
-add_library(SerialDevice
-  external/SerialDevice/src/SerialDevice.cc
-)
-
-add_executable(s3000_laser src/s3000_laser.cc src/sicks3000.cc)
-add_dependencies(s3000_laser SerialDevice)
-
+add_executable(s3000_laser src/s3000_laser.cc src/sick_s3000.cc)
 target_link_libraries(s3000_laser
-  SerialDevice
   ${catkin_LIBRARIES}
 )
 
-install(TARGETS s3000_laser SerialDevice
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+install(TARGETS s3000_laser
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

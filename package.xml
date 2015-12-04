@@ -12,5 +12,6 @@
   <depend>dynamic_reconfigure</depend>
   <depend>roscpp</depend>
   <depend>sensor_msgs</depend>
+  <depend>serial</depend>
   <depend>std_srvs</depend>
 </package>
