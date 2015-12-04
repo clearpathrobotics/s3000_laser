@@ -27,7 +27,8 @@
 */
 
 #include <netinet/in.h>  // htons
-#include "sicks3000.h"
+#include "s3000_laser/sick_s3000.h"
+#include "serial/serial.h"
 
 // 1 second of data at 500kbaud
 #define DEFAULT_RX_BUFFER_SIZE 500*1024/8
@@ -49,7 +50,7 @@ double DTOR(double val)
 /*! \fn SickS3000::SickS3000()
  *  \brief Public constructor
 */
-SickS3000::SickS3000( std::string port ) 
+SickS3000::SickS3000( std::string port )
 {
   rx_count = 0;
   // allocate our recieve buffer
@@ -61,19 +62,16 @@ SickS3000::SickS3000( std::string port )
   mirror = 0;  // TODO move to property
 
   // Create serial port
-  serial= new SerialDevice(port.c_str(), S3000_DEFAULT_TRANSFERRATE, S3000_DEFAULT_PARITY, S3000_DEFAULT_DATA_SIZE); //Creates serial device
+  serial_ = new serial::Serial();
+  serial_->setPort(port);
+  serial_->setBaudrate(S3000_DEFAULT_TRANSFERRATE);
 
   return;
 }
 
-SickS3000::~SickS3000() 
-{  
-  // Close serial port
-  if (serial!=NULL) serial->ClosePort();
-
-  // Delete serial port
-  if (serial!=NULL) delete serial;
-
+SickS3000::~SickS3000()
+{
+  Close();
   delete [] rx_buffer;
 }
 
@@ -84,14 +82,15 @@ SickS3000::~SickS3000()
 */
 int SickS3000::Open()
 {
-  // Setup serial device
-  if (this->serial->OpenPort2() == SERIAL_ERROR) 
+  serial_->open();
+
+  if (serial_->isOpen())
   {
     ROS_ERROR("SickS3000::Open: Error Opening Serial Port");
     return -1;
   }
 
-  ROS_INFO("SickS3000::Open: serial port opened at %s", serial->GetDevice());
+  ROS_INFO_STREAM("SickS3000 serial port opened at " << serial_->getPort());
 
   return 0;
 }
@@ -103,7 +102,10 @@ int SickS3000::Open()
 */
 int SickS3000::Close()
 {
-  if (serial!=NULL) serial->ClosePort();
+  if (serial_)
+  {
+    delete serial_;
+  }
   return 0;
 }
 
@@ -128,11 +130,12 @@ void SickS3000::SetScannerParams(sensor_msgs::LaserScan& scan, int data_count)
 
   int SickS3000::ReadLaser( sensor_msgs::LaserScan& scan, bool& bValidData ) // public periodic function
   {
-    int read_bytes=0;     // Number of received bytes
-    char cReadBuffer[4000] = "\0";    // Max in 1 read
+    uint8_t buffer[4000] = "\0";    // Max in 1 read
 
     // Read controller messages
-    if (serial->ReadPort(cReadBuffer, &read_bytes, 2000) < 0)
+    //if (serial->ReadPort(cReadBuffer, &read_bytes, 2000) < 0)
+    ssize_t read_bytes = serial_->read(buffer, sizeof(buffer));
+    if (read_bytes < 0)
     {
         ROS_ERROR("SickS3000::ReadLaser: Error reading port");
         return -1;
@@ -147,7 +150,7 @@ void SickS3000::SetScannerParams(sensor_msgs::LaserScan& scan, int data_count)
     }
     else
     {
-       memcpy(&rx_buffer[messageOffset], cReadBuffer, read_bytes);
+       memcpy(&rx_buffer[messageOffset], buffer, read_bytes);
        ProcessLaserData(scan, bValidData);
     }
 
@@ -184,7 +187,7 @@ int SickS3000::ProcessLaserData(sensor_msgs::LaserScan& scan, bool& bValidData)
     // size includes all data from the data block number
     // through to the end of the packet including the checksum
     unsigned short size = 2*htons(*reinterpret_cast<unsigned short *> (&rx_buffer[6]));
-    
+
     if (size > rx_buffer_size - 26)
     {
       ROS_WARN("S3000: Requested Size of data is larger than the buffer size");

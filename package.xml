@@ -13,5 +13,6 @@
   <depend>roscpp</depend>
   <depend>self_test</depend>
   <depend>sensor_msgs</depend>
+  <depend>serial</depend>
   <depend>std_srvs</depend>
 </package>

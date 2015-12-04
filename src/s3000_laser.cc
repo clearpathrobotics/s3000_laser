@@ -20,27 +20,21 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************/
 
-#include <assert.h>
-#include <math.h>
+#include <cmath>
 #include <iostream>
-#include <boost/format.hpp>
 
-#include "sicks3000.h"   // s3000 driver from player (Toby Collet / Andrew Howard)
-#include "ros/time.h"
-#include "self_test/self_test.h"
-#include "diagnostic_msgs/DiagnosticStatus.h"
 #include "diagnostic_updater/diagnostic_updater.h"
 #include "diagnostic_updater/update_functions.h"
 #include "diagnostic_updater/DiagnosticStatusWrapper.h"
-
+#include "ros/time.h"
+#include "s3000_laser/sick_s3000.h"
+#include "self_test/self_test.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 
-#include "std_msgs/Bool.h"
-
 using namespace std;
 
-class s3000node {
+class S3000Node {
 
 public:
   SickS3000 *laser;
@@ -65,7 +59,7 @@ public:
   diagnostic_updater::FrequencyStatus freq_diag_;
 
 
-  s3000node(ros::NodeHandle h) : self_test_(), diagnostic_(),
+  S3000Node(ros::NodeHandle h) : self_test_(), diagnostic_(),
     node_handle_(h), private_node_handle_("~"),
     desired_freq_(20),
     connected_(false),
@@ -80,16 +74,16 @@ public:
 
     laser_data_pub_ = laser_node_handle.advertise<sensor_msgs::LaserScan>("scan", 100);
 
-    self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
+    diagnostic_.add( "Connect Test", this, &S3000Node::ConnectTest );
     diagnostic_.add( freq_diag_ );
-    diagnostic_.add( "Laser S3000 Status", this, &s3000node::deviceStatus );
+    diagnostic_.add( "Laser S3000 Status", this, &S3000Node::deviceStatus );
 
     // Create SickS3000 in the given port
     laser = new SickS3000( port_ );
    }
 
 
-  ~s3000node()
+  ~S3000Node()
   {
     stop();
   }
@@ -215,15 +209,15 @@ public:
   {
     if (!connected_)
     {
-      status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Lidar is not connected");
+      status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "LIDAR is not connected.");
     }
     else if (!getting_data_)
     {
-      status.summary(diagnostic_msgs::DiagnosticStatus::WARN, "No valid data from lidar");
+      status.summary(diagnostic_msgs::DiagnosticStatus::WARN, "No valid data from LIDAR.");
     }
     else
     {
-      status.summary(diagnostic_msgs::DiagnosticStatus::OK, "Lidar is running");
+      status.summary(diagnostic_msgs::DiagnosticStatus::OK, "LIDAR OK.");
     }
 
     status.add("Device", port_);
@@ -237,8 +231,8 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh;
 
-  s3000node s3000n(nh);
-  s3000n.spin();
+  S3000Node node(nh);
+  node.spin();
 
   return(0);
 }

@@ -37,11 +37,14 @@
 #include <sys/stat.h>
 #include <ros/ros.h>
 #include "sensor_msgs/LaserScan.h"
-#include "SerialDevice.h"
 
 #define S3000_DEFAULT_TRANSFERRATE 500000     //
 #define S3000_DEFAULT_PARITY	   "none"
 #define S3000_DEFAULT_DATA_SIZE    8
+
+namespace serial {
+  class Serial;
+}
 
 // The laser device class.
 class SickS3000
@@ -62,7 +65,7 @@ class SickS3000
 
     //! Read and process data
     int ReadLaser( sensor_msgs::LaserScan& scan_msg, bool& bValidData ); // public periodic function
-  
+
   private:
 
     // Process range data from laser
@@ -80,7 +83,7 @@ class SickS3000
   protected:
 
     // serial port
-    SerialDevice* serial;
+    serial::Serial* serial_;
 
     // Defines if laser is mounted inverted
     int mirror;
