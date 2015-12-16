@@ -84,7 +84,7 @@ int SickS3000::Open()
 {
   serial_->open();
 
-  if (serial_->isOpen())
+  if (!serial_->isOpen())
   {
     ROS_ERROR("SickS3000::Open: Error Opening Serial Port");
     return -1;
