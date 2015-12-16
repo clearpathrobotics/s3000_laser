@@ -26,6 +26,8 @@
  its measured data on the RS422 data lines.
 */
 
+#include <stdio.h>
+
 #include <netinet/in.h>  // htons
 #include "sicks3000.h"
 
@@ -49,7 +51,7 @@ double DTOR(double val)
 /*! \fn SickS3000::SickS3000()
  *  \brief Public constructor
 */
-SickS3000::SickS3000( std::string port ) 
+SickS3000::SickS3000( std::string port )
 {
   rx_count = 0;
   // allocate our recieve buffer
@@ -66,8 +68,8 @@ SickS3000::SickS3000( std::string port )
   return;
 }
 
-SickS3000::~SickS3000() 
-{  
+SickS3000::~SickS3000()
+{
   // Close serial port
   if (serial!=NULL) serial->ClosePort();
 
@@ -85,13 +87,15 @@ SickS3000::~SickS3000()
 int SickS3000::Open()
 {
   // Setup serial device
-  if (this->serial->OpenPort2() == SERIAL_ERROR) 
+  if (this->serial->OpenPort2() == SERIAL_ERROR)
   {
     ROS_ERROR("SickS3000::Open: Error Opening Serial Port");
     return -1;
   }
 
   ROS_INFO("SickS3000::Open: serial port opened at %s", serial->GetDevice());
+
+  frecord = fopen("laser.log", "w");
 
   return 0;
 }
@@ -132,11 +136,14 @@ void SickS3000::SetScannerParams(sensor_msgs::LaserScan& scan, int data_count)
     char cReadBuffer[4000] = "\0";    // Max in 1 read
 
     // Read controller messages
-    if (serial->ReadPort(cReadBuffer, &read_bytes, 2000) < 0)
+    if (serial->ReadPort(cReadBuffer, &read_bytes, 4000) < 0)
     {
         ROS_ERROR("SickS3000::ReadLaser: Error reading port");
         return -1;
     }
+
+    ROS_INFO("rx: %d", read_bytes);;
+    fwrite(cReadBuffer, 1, read_bytes, frecord);
 
     unsigned int messageOffset = rx_count;
     rx_count += read_bytes;
@@ -184,7 +191,7 @@ int SickS3000::ProcessLaserData(sensor_msgs::LaserScan& scan, bool& bValidData)
     // size includes all data from the data block number
     // through to the end of the packet including the checksum
     unsigned short size = 2*htons(*reinterpret_cast<unsigned short *> (&rx_buffer[6]));
-    
+
     if (size > rx_buffer_size - 26)
     {
       ROS_WARN("S3000: Requested Size of data is larger than the buffer size");
