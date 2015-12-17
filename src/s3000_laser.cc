@@ -27,7 +27,6 @@
 
 #include "sicks3000.h"   // s3000 driver from player (Toby Collet / Andrew Howard)
 #include "ros/time.h"
-#include "self_test/self_test.h"
 #include "diagnostic_updater/DiagnosticStatusWrapper.h"
 #include "diagnostic_updater/diagnostic_updater.h"
 #include "diagnostic_updater/publisher.h"
@@ -48,7 +47,6 @@ public:
 
   string port_;
 
-  self_test::TestRunner self_test_;
   diagnostic_updater::Updater diagnostic_;
 
   ros::NodeHandle node_handle_;
@@ -75,9 +73,7 @@ public:
     private_node_handle_.param("frame_id", frameid_, string("laser"));
     scan_msg_.header.frame_id = frameid_;
 
-    self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
-
-    diagnostic_.add( "Laser S3000 Connection", this, &s3000node::deviceStatus );
+    diagnostic_.add( "connection status", this, &s3000node::deviceStatus );
 
     data_pub_.reset(new LaserScanDiagnosedPublisher(
           node_handle_.advertise<sensor_msgs::LaserScan>("scan", 1), diagnostic_,
@@ -170,7 +166,6 @@ public:
             getting_data_ = false;
           }
 
-          self_test_.checkTest();
           diagnostic_.update();
           ros::spinOnce();
         }
