@@ -390,6 +390,36 @@ int SerialDevice::WritePort(char *chars, int *written_bytes, int length) {
 	return SERIAL_OK;
 }
 
+bool SerialDevice::BlockOnRead(int millis) {
+  fd_set rfds;
+  struct timeval tv;
+  int retval;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 1000 * millis;
+
+  // Wait until we get a return value other than it being interrupted.
+  while(1) {
+    retval = select(fd+1, &rfds, NULL, NULL, &tv);
+    if (retval >= 1) return true;
+    if (retval = 0) return false;
+    if (retval = -1)
+    {
+      if (errno == EINTR)
+      {
+        continue;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+  }
+}
+
 /*!	\fn int SerialDevice::ReadPort(char *result)
 	* @brief Reads serial port 
 	* @param result as char *, output buffer

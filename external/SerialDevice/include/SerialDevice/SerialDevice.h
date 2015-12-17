@@ -90,6 +90,8 @@ public:
 	int ReadPort(char *result);	
 	int ReadPort(char *result, int num_bytes);
 	int ReadPort(char *result, int *read_bytes, int num_bytes);  	// Importat del SerialDevice amb Component
+
+  bool BlockOnRead(int millis);
 	//! Clean port buffer
 	int Flush();	
 	//! Returns opened device
