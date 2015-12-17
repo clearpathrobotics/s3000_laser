@@ -28,10 +28,10 @@
 #include "sicks3000.h"   // s3000 driver from player (Toby Collet / Andrew Howard)
 #include "ros/time.h"
 #include "self_test/self_test.h"
-#include "diagnostic_msgs/DiagnosticStatus.h"
-#include "diagnostic_updater/diagnostic_updater.h"
-#include "diagnostic_updater/update_functions.h"
 #include "diagnostic_updater/DiagnosticStatusWrapper.h"
+#include "diagnostic_updater/diagnostic_updater.h"
+#include "diagnostic_updater/publisher.h"
+#include "diagnostic_updater/update_functions.h"
 
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
@@ -43,7 +43,7 @@ using namespace std;
 class s3000node {
 
 public:
-  SickS3000 *laser;
+  boost::scoped_ptr<SickS3000> laser_;
   sensor_msgs::LaserScan reading;
 
   string port_;
@@ -53,7 +53,6 @@ public:
 
   ros::NodeHandle node_handle_;
   ros::NodeHandle private_node_handle_;
-  ros::Publisher laser_data_pub_;
 
   //for diagnostics
   bool connected_;
@@ -62,30 +61,28 @@ public:
   string frameid_;
 
   double desired_freq_;
-  diagnostic_updater::FrequencyStatus freq_diag_;
+  boost::scoped_ptr<diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan> > data_pub_;
 
-
-  s3000node(ros::NodeHandle h) : self_test_(), diagnostic_(),
+  s3000node(ros::NodeHandle h) :
     node_handle_(h), private_node_handle_("~"),
-    desired_freq_(20),
+    desired_freq_(17),
     connected_(false),
-    getting_data_(false),
-    freq_diag_(diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.05))
+    getting_data_(false)
   {
-    ros::NodeHandle laser_node_handle(node_handle_, "s3000_laser");
-
     private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
     private_node_handle_.param("frame_id", frameid_, string("laser"));
     reading.header.frame_id = frameid_;
 
-    laser_data_pub_ = laser_node_handle.advertise<sensor_msgs::LaserScan>("scan", 100);
-
     self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
-    diagnostic_.add( freq_diag_ );
+
     diagnostic_.add( "Laser S3000 Status", this, &s3000node::deviceStatus );
 
-    // Create SickS3000 in the given port
-    laser = new SickS3000( port_ );
+    data_pub_.reset(new diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan>(
+          node_handle_.advertise<sensor_msgs::LaserScan>("scan", 1), diagnostic_,
+          diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.01),
+          diagnostic_updater::TimeStampStatusParam()));
+
+    laser_.reset(new SickS3000(port_));
    }
 
 
@@ -99,11 +96,10 @@ public:
   {
     stop();
 
-    if (laser->Open() == 0)
+    if (laser_->Open() == 0)
     {
       diagnostic_.setHardwareID("Laser Ranger");
       ROS_INFO("Laser Ranger sensor initialized.");
-      freq_diag_.clear();
       connected_ = true;
     }
     else
@@ -122,7 +118,7 @@ public:
   {
     if(connected_)
     {
-        laser->Close();
+        laser_->Close();
         connected_ = false;
     }
 
@@ -132,7 +128,7 @@ public:
 
   void ConnectTest(diagnostic_updater::DiagnosticStatusWrapper& status)
   {
-    if (laser->Open() == 0)
+    if (laser_->Open() == 0)
     {
       status.summary(diagnostic_msgs::DiagnosticStatus::OK, "Connected successfully.");
     }
@@ -147,7 +143,7 @@ public:
   {
     bool bValidData = false;
 
-    if (laser->ReadLaser( data, bValidData ) < 0)
+    if (laser_->ReadLaser( data, bValidData ) < 0)
     {
       return (-1);
     }
@@ -156,8 +152,7 @@ public:
     if (bValidData)
     {
       data.header.stamp = ros::Time::now();
-      laser_data_pub_.publish( data );
-      freq_diag_.tick();
+      data_pub_->publish( data );
       getting_data_ = true;
     }
     else
@@ -215,19 +210,19 @@ public:
   {
     if (!connected_)
     {
-      status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Lidar is not connected");
+      status.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "LIDAR not connected.");
     }
     else if (!getting_data_)
     {
-      status.summary(diagnostic_msgs::DiagnosticStatus::WARN, "No valid data from lidar");
+      status.summary(diagnostic_msgs::DiagnosticStatus::WARN, "LIDAR connected, but no data.");
     }
     else
     {
-      status.summary(diagnostic_msgs::DiagnosticStatus::OK, "Lidar is running");
+      status.summary(diagnostic_msgs::DiagnosticStatus::OK, "LIDAR connected.");
     }
 
     status.add("Device", port_);
-    status.add("TF frame", frameid_);
+    status.add("TF Frame", frameid_);
   }
 };
 
