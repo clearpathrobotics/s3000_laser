@@ -37,6 +37,9 @@
 
 #include "std_msgs/Bool.h"
 
+#define RADIANS(X) ((X) * 3.141592653589793 / 180.0)
+
+
 using namespace std;
 
 class s3000node {
@@ -65,13 +68,19 @@ public:
 
   s3000node(ros::NodeHandle h) :
     node_handle_(h), private_node_handle_("~"),
-    desired_freq_(16.7),
+    desired_freq_(16.6),
     connected_(false),
     getting_data_(false)
   {
     private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
     private_node_handle_.param("frame_id", frameid_, string("laser"));
+
     scan_msg_.header.frame_id = frameid_;
+    scan_msg_.angle_min = static_cast<float>(RADIANS(-95.0));
+    scan_msg_.angle_max = static_cast<float>(RADIANS(95.0));
+    scan_msg_.angle_increment = static_cast<float>(RADIANS(0.25));
+    scan_msg_.range_min = 0;
+    scan_msg_.range_max = 52;  // TODO(mikepurvis): Confirm this value.
 
     diagnostic_.add( "connection status", this, &s3000node::deviceStatus );
 
@@ -158,6 +167,9 @@ public:
 
           if (scan_available)
           {
+            scan_msg_.scan_time = (1.0 / desired_freq_);
+            scan_msg_.time_increment = scan_msg_.scan_time / scan_msg_.ranges.size();
+
             data_pub_->publish(scan_msg_);
             getting_data_ = true;
           }

@@ -40,12 +40,6 @@
 #define NACK    0x92
 #define CRC16_GEN_POL 0x8005
 
-//! Converts degrees to radians
-double DTOR(double val)
-{
-    return val*3.141592653589793/180.0;
-}
-
 /*! \fn SickS3000::SickS3000()
  *  \brief Public constructor
 */
@@ -105,25 +99,6 @@ int SickS3000::Close()
 {
   if (serial!=NULL) serial->ClosePort();
   return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Set up scanner parameters based on number of results per scan
-void SickS3000::SetScannerParams(sensor_msgs::LaserScan& scan, int data_count)
-{
-  if (data_count == 761) // sicks3000
-  {
-    // Scan configuration
-    scan.angle_min  = static_cast<float> (DTOR(-95));
-    scan.angle_max  = static_cast<float> (DTOR(95));
-    scan.angle_increment =  static_cast<float> (DTOR(0.25));
-    scan.time_increment = (1.0/16.6) / 761.0;  //(((95.0+95.0)/0.25)+1.0);    // Freq 16.6Hz / 33.3Hz
-    scan.scan_time = (1.0/16.6);
-    scan.range_min  =  0;
-    scan.range_max  =  49;   // check ?
-
-    recognisedScanner = true;
-  }
 }
 
   int SickS3000::ReadLaser( sensor_msgs::LaserScan& scan, bool& bValidData ) // public periodic function
@@ -242,8 +217,6 @@ int SickS3000::ProcessLaserData(sensor_msgs::LaserScan& scan, bool& bValidData)
             rx_count -= (size + 4);
             continue;
           }
-          if (!recognisedScanner)
-            SetScannerParams(scan, data_count); // Set up parameters based on number of results.
 
           // Scan data, clear ranges, keep configuration
           scan.ranges.clear();
