@@ -49,7 +49,7 @@ double DTOR(double val)
 /*! \fn SickS3000::SickS3000()
  *  \brief Public constructor
 */
-SickS3000::SickS3000( std::string port ) 
+SickS3000::SickS3000( std::string port )
 {
   rx_count = 0;
   // allocate our recieve buffer
@@ -66,8 +66,8 @@ SickS3000::SickS3000( std::string port )
   return;
 }
 
-SickS3000::~SickS3000() 
-{  
+SickS3000::~SickS3000()
+{
   // Close serial port
   if (serial!=NULL) serial->ClosePort();
 
@@ -85,7 +85,7 @@ SickS3000::~SickS3000()
 int SickS3000::Open()
 {
   // Setup serial device
-  if (this->serial->OpenPort2() == SERIAL_ERROR) 
+  if (this->serial->OpenPort2() == SERIAL_ERROR)
   {
     ROS_ERROR("SickS3000::Open: Error Opening Serial Port");
     return -1;
@@ -129,14 +129,29 @@ void SickS3000::SetScannerParams(sensor_msgs::LaserScan& scan, int data_count)
   int SickS3000::ReadLaser( sensor_msgs::LaserScan& scan, bool& bValidData ) // public periodic function
   {
     int read_bytes=0;     // Number of received bytes
-    char cReadBuffer[4000] = "\0";    // Max in 1 read
+    char cReadBuffer[2000] = "\0";    // Max in 1 read
 
-    // Read controller messages
-    if (serial->ReadPort(cReadBuffer, &read_bytes, 2000) < 0)
+    // Wait up to 100ms for new data to be available.
+    if (!serial->BlockOnRead(100))
+    {
+      ROS_ERROR("SickS3000::ReadLaser: Error waiting to read port.");
+      return -1;
+    }
+
+    // Data is flowing, get our timestamp.
+    scan.header.stamp = ros::Time::now();
+
+    // Brief pause to allow all data to arrive so we can get it in a single read.
+    // Empirically determined.
+    ros::Duration(0.04).sleep();
+
+    // Read controller messages.
+    if (serial->ReadPort(cReadBuffer, &read_bytes, 1999) < 0)
     {
         ROS_ERROR("SickS3000::ReadLaser: Error reading port");
         return -1;
     }
+    ROS_DEBUG("RX %d bytes", read_bytes);
 
     unsigned int messageOffset = rx_count;
     rx_count += read_bytes;
@@ -184,7 +199,7 @@ int SickS3000::ProcessLaserData(sensor_msgs::LaserScan& scan, bool& bValidData)
     // size includes all data from the data block number
     // through to the end of the packet including the checksum
     unsigned short size = 2*htons(*reinterpret_cast<unsigned short *> (&rx_buffer[6]));
-    
+
     if (size > rx_buffer_size - 26)
     {
       ROS_WARN("S3000: Requested Size of data is larger than the buffer size");

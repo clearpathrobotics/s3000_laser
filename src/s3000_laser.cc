@@ -44,7 +44,7 @@ class s3000node {
 
 public:
   boost::scoped_ptr<SickS3000> laser_;
-  sensor_msgs::LaserScan reading;
+  sensor_msgs::LaserScan scan_msg_;
 
   string port_;
 
@@ -61,25 +61,27 @@ public:
   string frameid_;
 
   double desired_freq_;
-  boost::scoped_ptr<diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan> > data_pub_;
+
+  typedef diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan> LaserScanDiagnosedPublisher;
+  boost::scoped_ptr<LaserScanDiagnosedPublisher> data_pub_;
 
   s3000node(ros::NodeHandle h) :
     node_handle_(h), private_node_handle_("~"),
-    desired_freq_(17),
+    desired_freq_(16.7),
     connected_(false),
     getting_data_(false)
   {
     private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
     private_node_handle_.param("frame_id", frameid_, string("laser"));
-    reading.header.frame_id = frameid_;
+    scan_msg_.header.frame_id = frameid_;
 
     self_test_.add( "Connect Test", this, &s3000node::ConnectTest );
 
-    diagnostic_.add( "Laser S3000 Status", this, &s3000node::deviceStatus );
+    diagnostic_.add( "Laser S3000 Connection", this, &s3000node::deviceStatus );
 
-    data_pub_.reset(new diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan>(
+    data_pub_.reset(new LaserScanDiagnosedPublisher(
           node_handle_.advertise<sensor_msgs::LaserScan>("scan", 1), diagnostic_,
-          diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.01),
+          diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.05),
           diagnostic_updater::TimeStampStatusParam()));
 
     laser_.reset(new SickS3000(port_));
@@ -92,7 +94,7 @@ public:
   }
 
 
-  int start()
+  bool start()
   {
     stop();
 
@@ -101,28 +103,25 @@ public:
       diagnostic_.setHardwareID("Laser Ranger");
       ROS_INFO("Laser Ranger sensor initialized.");
       connected_ = true;
+      return true;
     }
     else
     {
       ROS_ERROR("Laser Ranger sensor initialization failed.");
       connected_ = false;
       diagnostic_.force_update();
-      return (-1);
+      return false;
     }
-
-    return(0);
   }
 
 
-  int stop()
+  void stop()
   {
     if(connected_)
     {
         laser_->Close();
         connected_ = false;
     }
-
-    return(0);
   }
 
 
@@ -138,65 +137,48 @@ public:
     }
   }
 
-
-  int getData(sensor_msgs::LaserScan& data)
-  {
-    bool bValidData = false;
-
-    if (laser_->ReadLaser( data, bValidData ) < 0)
-    {
-      return (-1);
-    }
-
-    //// If valid data, publish it
-    if (bValidData)
-    {
-      data.header.stamp = ros::Time::now();
-      data_pub_->publish( data );
-      getting_data_ = true;
-    }
-    else
-    {
-      getting_data_ = false;
-    }
-
-    return (0);
-  }
-
-
   bool spin()
   {
-    ros::Rate r(desired_freq_);
-
-    // Using ros::isShuttingDown to avoid restarting the node during a shutdown.
-    while (!ros::isShuttingDown())
+    // Outer loop for reconnection.
+    while (ros::ok())
     {
-      if (start() == 0)
+      diagnostic_.update();
+      ros::spinOnce();
+
+      if (start())
       {
-        while(node_handle_.ok())
+        // Inner loop runs once per received scan.
+        while(ros::ok())
         {
-          if (getData(reading) == -1) //Error reading from port
+          bool scan_available = false;
+          if (laser_->ReadLaser(scan_msg_, scan_available) < 0)
           {
+            // Problem reading, or read timed out. Disconnect and try again.
             connected_ = false;
+            getting_data_ = false;
+            ros::Duration(1.0).sleep();
+            break;
+          }
+
+          if (scan_available)
+          {
+            data_pub_->publish(scan_msg_);
+            getting_data_ = true;
           }
           else
           {
-            connected_ = true;
+            getting_data_ = false;
           }
 
           self_test_.checkTest();
           diagnostic_.update();
           ros::spinOnce();
-          r.sleep();
         }
       }
       else
       {
-        // No need for diagnostic here since a broadcast occurs in start
-        // when there is an error.
-        usleep(1000000);
-        self_test_.checkTest();
-        ros::spinOnce();
+        ROS_INFO("Retrying in 1 second.");
+        ros::Duration(1.0).sleep();
       }
     }
 
