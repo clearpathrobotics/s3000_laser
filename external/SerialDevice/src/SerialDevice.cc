@@ -1,6 +1,6 @@
 /*
 *  Copyright (c) 2012, Robotnik Automation, SLL
-* 
+*
 *   This file is part of sick-s3000-ros-pkg.
 *
 *   sick-s3000-ros-pkg is free software: you can redistribute it and/or modify
@@ -22,14 +22,14 @@
  * \version 1.1
  * \date    2009
  *
- * \brief SerialDevice Class 
+ * \brief SerialDevice Class
  * (C) 2009 Robotnik Automation, SLL
  * Class to manage a serial connection
 */
 
 #include "../include/SerialDevice/SerialDevice.h"
 #include <time.h>
-#include <string.h> 
+#include <string.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>  /* UNIX standard function definitions */
@@ -44,13 +44,13 @@
 /*! \fn SerialDevice::SerialDevice(void)
  	* Constructor by default
 */
-SerialDevice::SerialDevice(void){	
-	
+SerialDevice::SerialDevice(void){
+
 	strcpy(cDevice,DEFAULT_PORT);
 	strcpy(cParity,DEFAULT_PARITY);
 	iBaudRate=DEFAULT_TRANSFERRATE;
 	iBitDataSize = DEFAULT_DATA_SIZE;
-	bReady = false;	
+	bReady = false;
 	bCanon = false;
 }
 
@@ -58,15 +58,15 @@ SerialDevice::SerialDevice(void){
 /*! \fn SerialDevice::SerialDevice(void)
  	* Constructor by default
 */
-SerialDevice::SerialDevice(const char *device, int baudrate, const char *parity, int datasize){	
-	
+SerialDevice::SerialDevice(const char *device, int baudrate, const char *parity, int datasize){
+
 	strcpy(cDevice,device);
-	std::cout << "SerialDevice::SerialDevice: " << cDevice << " Parity= " << parity 
+	std::cout << "SerialDevice::SerialDevice: " << cDevice << " Parity= " << parity
 	<< " DataSize=" << datasize <<" BaudRate=" << baudrate << std::endl;
 	strcpy(cParity,parity);
 	iBaudRate=baudrate;
 	iBitDataSize = datasize;
-	bReady = false;	
+	bReady = false;
 	bCanon = false;
 }
 
@@ -115,62 +115,62 @@ int SerialDevice::InitPort() {
 	 		if(cfsetispeed( &options, iBaudRate ) < 0 || cfsetospeed( &options, iBaudRate ) < 0)
 			  {
 				// ROS_ERROR("failed to set serial baud rate");
-		  		return -1; 
+		  		return -1;
 	  		  }
                 break;
 		default:
 			cfsetispeed(&options, B19200);
 			cfsetospeed(&options, B19200);
 		break;
-	}	
+	}
 	// Enable the receiver and set local mode...
-	options.c_cflag |= CLOCAL | CREAD; 
+	options.c_cflag |= CLOCAL | CREAD;
 	options.c_cflag &= ~HUPCL;
-	// 
+	//
 	// PARITY
 	if(!strcmp(cParity, "none")){
-		//parity = NONE 
+		//parity = NONE
 		options.c_cflag &= ~PARENB;
-		options.c_cflag &= ~PARODD;  
+		options.c_cflag &= ~PARODD;
 		printf("SerialDevice::InitPort: Parity = none\n");
 	} else if(!strcmp(cParity, "even")){
-		//parity = EVEN 
-		options.c_cflag |= PARENB;  
+		//parity = EVEN
+		options.c_cflag |= PARENB;
 		printf("SerialDevice::InitPort: Parity = even\n");
 	} else if(!strcmp(cParity, "odd")){
 		options.c_cflag |= PARENB;
-		options.c_cflag |= PARODD; 
+		options.c_cflag |= PARODD;
 		printf("SerialDevice::InitPort: Parity = odd\n");
 	} else {
-		//parity = NONE 
+		//parity = NONE
 		options.c_cflag &= ~PARENB;
-		options.c_cflag &= ~PARODD; // NONE 
+		options.c_cflag &= ~PARODD; // NONE
 		printf("SerialDevice::InitPort: Parity = none\n");
 	}
-	
-	options.c_cflag &= ~CSTOPB;// 1 Stop bit	
+
+	options.c_cflag &= ~CSTOPB;// 1 Stop bit
 	options.c_cflag &= ~CSIZE;
 	//
 	// Character size
 	switch(iBitDataSize){
 		case 5:
-			options.c_cflag |= CS5;	
+			options.c_cflag |= CS5;
 			printf("SerialDevice::InitPort: Data size = CS5\n");
 		break;
 		case 6:
-			options.c_cflag |= CS6;	
+			options.c_cflag |= CS6;
 			printf("SerialDevice::InitPort: Data size = CS6\n");
 		break;
 		case 7:
-			options.c_cflag |= CS7;	
+			options.c_cflag |= CS7;
 			printf("SerialDevice::InitPort: Data size = CS7\n");
 		break;
 		case 8:
-			options.c_cflag |= CS8;	
+			options.c_cflag |= CS8;
 			printf("SerialDevice::InitPort: Data size = CS8\n");
 		break;
 		default:
-			options.c_cflag |= CS7;	
+			options.c_cflag |= CS7;
 			printf("SerialDevice::InitPort: Data size = CS7\n");
 		break;
 	}
@@ -180,7 +180,7 @@ ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff 
 -opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
 -isig -icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase -tostop -echoprt -echoctl -echoke
 	 */
-	options.c_cflag &= ~CRTSCTS;	//Disables hardware flow control	
+	options.c_cflag &= ~CRTSCTS;	//Disables hardware flow control
 
 	options.c_iflag |= IGNBRK;
 	options.c_iflag &= ~ICRNL;
@@ -194,7 +194,7 @@ ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff 
 	options.c_lflag &= ~ECHOKE;
 	options.c_lflag &= ~ECHO;
 	options.c_lflag &= ~ECHOE;
-	// 
+	//
 	// Entrada canónica-> La entrada canónica es orientada a línea. Los caracteres se meten en un buffer hasta recibir un CR o LF.
 	if(bCanon)
 		options.c_lflag |= ICANON;
@@ -220,21 +220,21 @@ ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff 
 int SerialDevice::OpenPort1(void){
 
 	fd = open(cDevice,  O_RDWR | O_NOCTTY);// | O_NDELAY);// | O_NONBLOCK)
-	
+
 	if(fd==-1){
 		std::cout << "SerialDevice::OpenPort: Error opening " << cDevice << " port" << std::endl;
-		return SERIAL_ERROR;  // invalid device file	
+		return SERIAL_ERROR;  // invalid device file
 	}else{
 		std::cout << "SerialDevice::OpenPort: " << cDevice << " opened properly" << std::endl;
 		//return SERIAL_OK;
 	}
-	
+
 	InitPort();		//TEST
-	
+
 	fcntl(fd,F_SETFL, FNDELAY);	//TEST
-	
+
 	bReady = true;
-	
+
 	return SERIAL_OK;
 }
 
@@ -244,19 +244,19 @@ int SerialDevice::OpenPort1(void){
 */
 int SerialDevice::OpenPort2(void){
 	struct termios newtio;
-		
+
 	fd = open(cDevice,  O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 	if(fd==-1){
 		std::cout << "SerialDevice::OpenPort2: Error opening " << cDevice << " port" << std::endl;
-		return SERIAL_ERROR;  // invalid device file	
+		return SERIAL_ERROR;  // invalid device file
 	}//else{
 		//std::cout << "SerialDevice::OpenPort: " << cDevice << " opened properly" << std::endl;
 		//return SERIAL_OK;
 	//}
-	
+
 	// set up comm flags
 	memset(&newtio, 0,sizeof(newtio));
-	
+
 	switch(iBitDataSize)
 	{
 		case 5:
@@ -272,16 +272,16 @@ int SerialDevice::OpenPort2(void){
 			newtio.c_cflag = CS8 | CREAD;
 		break;
 		default:
-			//std::cout << "SerialDevice::OpenPort: unknown datasize (" << iBitDataSize << " bits) : setting default datasize ("<< DEFAULT_DATA_SIZE <<" bits)" << std::endl; 
+			//std::cout << "SerialDevice::OpenPort: unknown datasize (" << iBitDataSize << " bits) : setting default datasize ("<< DEFAULT_DATA_SIZE <<" bits)" << std::endl;
 			iBitDataSize = 8;
 			newtio.c_cflag = CS8 | CREAD;
 		break;
 	}
-	
+
 	newtio.c_iflag = INPCK;
 	newtio.c_oflag = 0;
 	newtio.c_lflag = 0;
-	
+
 	if(!strcmp(cParity,"even"))
 		newtio.c_cflag |= PARENB;//Even parity
 	else if(!strcmp(cParity,"odd"))
@@ -290,24 +290,24 @@ int SerialDevice::OpenPort2(void){
 		newtio.c_cflag &= ~PARODD;
 		newtio.c_cflag &= ~PARENB;
 	}
-	
+
 	newtio.c_lflag &= ~ICANON;	// TEST
-	
+
 	tcsetattr(fd, TCSANOW, &newtio);
 	tcflush(fd, TCIOFLUSH);
-		
+
 	if (SetTermSpeed(iBaudRate) == SERIAL_ERROR)
 	    return SERIAL_ERROR;
-	
+
 	// Make sure queue is empty
 	tcflush(fd, TCIOFLUSH);
 	usleep(1000);
 	tcflush(fd, TCIFLUSH);
-	
+
 	bReady = true;
-	
+
 	return SERIAL_OK;
-	
+
 }
 
 /*! \fn int SerialDevice::ClosePort(void)
@@ -315,7 +315,7 @@ int SerialDevice::OpenPort2(void){
 */
 int SerialDevice::ClosePort(void){
 	bReady = false;
-	
+
 	printf("SerialDevice::ClosePort: closing port %s\n", cDevice);
 	return close(fd);
 	//return SERIAL_OK;
@@ -328,9 +328,9 @@ int SerialDevice::ClosePort(void){
 	* @return SERIAL_ERROR if device is not ready
 */
 int SerialDevice::ReceiveMessage(char *msg)
-{	
+{
 	int n=0;
-	if(bReady) {		
+	if(bReady) {
 		// n= read(fd, msg, BUFFER);
 		n= ReadPort(msg);
 		//if(n>0)
@@ -346,13 +346,13 @@ int SerialDevice::ReceiveMessage(char *msg)
 /*!	\fn int SerialDevice::WritePort(char *chars, int length)
 	* @brief Sends commands to the Serial port
 	* @param chars as char*, string for sending
-	* @param length as int, length of the string	
+	* @param length as int, length of the string
 	* @return number of sent bytes
 */
 int SerialDevice::WritePort(char *chars, int length) {
 
-	//int len = strlen(chars);	
-	//chars[len] = 0x0d; // stick a <CR> after the command	
+	//int len = strlen(chars);
+	//chars[len] = 0x0d; // stick a <CR> after the command
 	//chars[len+1] = 0x00; // terminate the string properly
 
 	int n = write(fd, chars, length);//strlen(chars));
@@ -390,15 +390,51 @@ int SerialDevice::WritePort(char *chars, int *written_bytes, int length) {
 	return SERIAL_OK;
 }
 
+bool SerialDevice::BlockOnRead(int millis) {
+  fd_set rfds;
+  struct timeval tv;
+  int retval;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 1000 * millis;
+
+  // Wait until we get a return value other than it being interrupted.
+  while(1) {
+    retval = select(fd+1, &rfds, NULL, NULL, &tv);
+    if (retval >= 1)
+    {
+      return true;
+    }
+    if (retval == 0)
+    {
+      return false;
+    }
+    if (retval == -1)
+    {
+      if (errno == EINTR)
+      {
+        continue;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+  }
+}
+
 /*!	\fn int SerialDevice::ReadPort(char *result)
-	* @brief Reads serial port 
+	* @brief Reads serial port
 	* @param result as char *, output buffer
 	* @return number of read bytes
 */
 int SerialDevice::ReadPort(char *result) {
 	int iIn = read(fd, result, 254);
 	//result[iIn-1] = 0x00;
-	
+
 	if (iIn < 0) {
 		if (errno == EAGAIN) {
 			//printf("SerialDevice::ReadPort: Read= %d, SERIAL EAGAIN ERROR, errno= %d\n",iIn, errno);
@@ -408,19 +444,19 @@ int SerialDevice::ReadPort(char *result) {
 			return -1;
 		}
 	}
-	//printf("SerialDevice::ReadPort: read %d bytes -> %s \n", iIn, result);	
+	//printf("SerialDevice::ReadPort: read %d bytes -> %s \n", iIn, result);
 	return iIn;
 }
 
 /*!	\fn int SerialDevice::ReadPort(char *result, int num_bytes)
-	* @brief Reads serial port 
+	* @brief Reads serial port
 	* @param result as char *, output buffer
 	* @return number of read bytes
 */
 int SerialDevice::ReadPort(char *result, int num_bytes) {
 	int iIn = read(fd, result, num_bytes);
 	//result[iIn-1] = 0x00;
-	
+
 	if (iIn < 0) {
 		if (errno == EAGAIN) {
 			//printf("SerialDevice::ReadPort: Read= %d, SERIAL EAGAIN ERROR, errno= %d\n",iIn, errno);
@@ -430,7 +466,7 @@ int SerialDevice::ReadPort(char *result, int num_bytes) {
 			return -1;
 		}
 	}
-	//printf("SerialDevice::ReadPort: read %d bytes -> %s \n", iIn, result);	
+	//printf("SerialDevice::ReadPort: read %d bytes -> %s \n", iIn, result);
 	return iIn;
 }
 
@@ -464,7 +500,7 @@ int SerialDevice::ReadPort(char *result, int *read_bytes, int num_bytes) {
 	*
 */
 int SerialDevice::GetBaud(void) {
-	
+
 	struct termios termAttr;
 	int inputSpeed = -1;
 	speed_t baudRate;
@@ -496,18 +532,18 @@ int SerialDevice::GetBaud(void) {
 */
 int SerialDevice::SendMessage(char *msg, int length){
 	int n=0;
-	
+
 	//n=write(fd, SendBuf, length);
 	if(bReady){
 	//printf("SerialDevice::SendMessage: strlen=%d\n", strlen(msg));
-		n = WritePort(msg, length);		
+		n = WritePort(msg, length);
 		return n;
 		//if(n==0){
 		//	printf("SerialDevice::SendMessage: Could not send command ");
 		//	return SERIAL_ERROR;
 		//}else
 		//	printf("SerialDevice::SendMessage: Transmited %d", n);
-		
+
 		//return SERIAL_OK;
 	}else	{
 		std::cout << "SerialDevice::SendMessage: Device is not ready" << std::endl;
@@ -524,7 +560,7 @@ int SerialDevice::SendMessage(char *msg, int length){
 int SerialDevice::SetTermSpeed(int speed){
 	struct termios term;
 	int term_speed;
-	
+
 	switch(speed){
 		case 9600:
 			term_speed = B9600;
@@ -546,7 +582,7 @@ int SerialDevice::SetTermSpeed(int speed){
 			//std::cout << "SerialDevice::SetTermSpeed: Unknown speed ("<< speed <<") speedL Setting default value ("<< term_speed <<")"<< std::endl;
 			break;
 	}
-	
+
 	switch(term_speed)
 	{
 		case B9600:
@@ -559,27 +595,27 @@ int SerialDevice::SetTermSpeed(int speed){
 				//std::cout << "SerialDevice::SetTermSpeed: Unable to get device attributes" << std::endl;
 				return SERIAL_ERROR;
 			}
-			
+
 		  	//cfmakeraw( &term );
 			if(cfsetispeed( &term, term_speed ) < 0 || cfsetospeed( &term, term_speed ) < 0)
 			{
 				///std::cout << "SerialDevice::SetTermSpeed: Failed to set serial baud rate" << std::endl;
 				return SERIAL_ERROR;
 			}
-			
+
 			if( tcsetattr( fd, TCSAFLUSH, &term ) < 0 )
 			{
-				//std::cout << "SerialDevice::SetTermSpeed: Unable to set device attributes" << std::endl;			
+				//std::cout << "SerialDevice::SetTermSpeed: Unable to set device attributes" << std::endl;
 				return SERIAL_ERROR;
 			}
 			//std::cout << "SerialDevice::SetTermSpeed: Communication rate changed to " << speed << std::endl;
 			return SERIAL_OK;
 		break;
-	
+
 	default:
 		//std::cout << "SerialDevice::SetTermSpeed: Unknown speed "<< speed << std::endl;
 		return SERIAL_ERROR;
-		
+
 	}
 	return SERIAL_OK;
 }
@@ -603,8 +639,8 @@ void SerialDevice::SetCanonicalInput(bool value){
 	bCanon = value;
 }
 
-/*	
-agvservicios:/robotrans# stty -F /dev/ttyS0 -a 
+/*
+agvservicios:/robotrans# stty -F /dev/ttyS0 -a
 
 speed 19200 baud; rows 0; columns 0; line = 0;
 intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
@@ -621,16 +657,16 @@ ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff
 
 agvservicios:/robotrans/src# stty -F /dev/ttyS1 -a
 speed 19200 baud; rows 0; columns 0; line = 0;
-intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; 
-eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; 
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
+eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R;
 
 werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 5;
 parenb parodd cs7 -hupcl -cstopb cread clocal -crtscts
-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff 
--iuclc -ixany -imaxbel -iutf8 
+ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff
+-iuclc -ixany -imaxbel -iutf8
 -opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
 
--isig icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase -tostop -echoprt 
+-isig icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase -tostop -echoprt
 -echoctl -echoke
 
 */

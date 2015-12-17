@@ -62,7 +62,7 @@ class SickS3000
 
     //! Read and process data
     int ReadLaser( sensor_msgs::LaserScan& scan_msg, bool& bValidData ); // public periodic function
-  
+
   private:
 
     // Process range data from laser
@@ -74,8 +74,6 @@ class SickS3000
 
     // Get the time (in ms)
     int64_t GetTime();
-
-    void SetScannerParams(sensor_msgs::LaserScan& scan, int data_count);
 
   protected:
 

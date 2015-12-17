@@ -40,16 +40,10 @@
 #define NACK    0x92
 #define CRC16_GEN_POL 0x8005
 
-//! Converts degrees to radians
-double DTOR(double val)
-{
-    return val*3.141592653589793/180.0;
-}
-
 /*! \fn SickS3000::SickS3000()
  *  \brief Public constructor
 */
-SickS3000::SickS3000( std::string port ) 
+SickS3000::SickS3000( std::string port )
 {
   rx_count = 0;
   // allocate our recieve buffer
@@ -66,8 +60,8 @@ SickS3000::SickS3000( std::string port )
   return;
 }
 
-SickS3000::~SickS3000() 
-{  
+SickS3000::~SickS3000()
+{
   // Close serial port
   if (serial!=NULL) serial->ClosePort();
 
@@ -85,7 +79,7 @@ SickS3000::~SickS3000()
 int SickS3000::Open()
 {
   // Setup serial device
-  if (this->serial->OpenPort2() == SERIAL_ERROR) 
+  if (this->serial->OpenPort2() == SERIAL_ERROR)
   {
     ROS_ERROR("SickS3000::Open: Error Opening Serial Port");
     return -1;
@@ -107,36 +101,32 @@ int SickS3000::Close()
   return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Set up scanner parameters based on number of results per scan
-void SickS3000::SetScannerParams(sensor_msgs::LaserScan& scan, int data_count)
-{
-  if (data_count == 761) // sicks3000
-  {
-    // Scan configuration
-    scan.angle_min  = static_cast<float> (DTOR(-95));
-    scan.angle_max  = static_cast<float> (DTOR(95));
-    scan.angle_increment =  static_cast<float> (DTOR(0.25));
-    scan.time_increment = (1.0/16.6) / 761.0;  //(((95.0+95.0)/0.25)+1.0);    // Freq 16.6Hz / 33.3Hz
-    scan.scan_time = (1.0/16.6);
-    scan.range_min  =  0;
-    scan.range_max  =  49;   // check ?
-
-    recognisedScanner = true;
-  }
-}
-
   int SickS3000::ReadLaser( sensor_msgs::LaserScan& scan, bool& bValidData ) // public periodic function
   {
     int read_bytes=0;     // Number of received bytes
-    char cReadBuffer[4000] = "\0";    // Max in 1 read
+    char cReadBuffer[2000] = "\0";    // Max in 1 read
 
-    // Read controller messages
-    if (serial->ReadPort(cReadBuffer, &read_bytes, 2000) < 0)
+    // Wait up to 100ms for new data to be available.
+    if (!serial->BlockOnRead(100))
+    {
+      ROS_ERROR("SickS3000::ReadLaser: Error waiting to read port.");
+      return -1;
+    }
+
+    // Data is flowing, get our timestamp.
+    scan.header.stamp = ros::Time::now();
+
+    // Brief pause to allow all data to arrive so we can get it in a single read.
+    // Empirically determined.
+    ros::Duration(0.04).sleep();
+
+    // Read controller messages.
+    if (serial->ReadPort(cReadBuffer, &read_bytes, 1999) < 0)
     {
         ROS_ERROR("SickS3000::ReadLaser: Error reading port");
         return -1;
     }
+    ROS_DEBUG("RX %d bytes", read_bytes);
 
     unsigned int messageOffset = rx_count;
     rx_count += read_bytes;
@@ -184,7 +174,7 @@ int SickS3000::ProcessLaserData(sensor_msgs::LaserScan& scan, bool& bValidData)
     // size includes all data from the data block number
     // through to the end of the packet including the checksum
     unsigned short size = 2*htons(*reinterpret_cast<unsigned short *> (&rx_buffer[6]));
-    
+
     if (size > rx_buffer_size - 26)
     {
       ROS_WARN("S3000: Requested Size of data is larger than the buffer size");
@@ -227,8 +217,6 @@ int SickS3000::ProcessLaserData(sensor_msgs::LaserScan& scan, bool& bValidData)
             rx_count -= (size + 4);
             continue;
           }
-          if (!recognisedScanner)
-            SetScannerParams(scan, data_count); // Set up parameters based on number of results.
 
           // Scan data, clear ranges, keep configuration
           scan.ranges.clear();
