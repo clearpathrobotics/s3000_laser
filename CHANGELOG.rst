@@ -2,6 +2,16 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Eliminate fixed rate loop, block on data receipt
+* Rename connection diagnostic, remove self_test.
+* Remove getData, use BlockOnRead.
+* Switch to DiagnosedPublisher, scoped_ptr.
+* Remove tf broadcaster, doesn't belong here.
+* Package format 2, CMakeLists cleanup, maintainer change.
+* Contributors: Mike Purvis
+
 0.1.0 (2015-09-21)
 ------------------
 * Merge pull request `#2 <https://github.com/clearpathrobotics/s3000_laser/issues/2>`_ from clearpathrobotics/igrrs-441-fix
