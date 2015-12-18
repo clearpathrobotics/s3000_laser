@@ -2,8 +2,8 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2015-12-18)
+------------------
 * Eliminate fixed rate loop, block on data receipt
 * Rename connection diagnostic, remove self_test.
 * Remove getData, use BlockOnRead.
