@@ -5,7 +5,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   diagnostic_updater
   dynamic_reconfigure
-  self_test
   sensor_msgs
   std_srvs
 )
