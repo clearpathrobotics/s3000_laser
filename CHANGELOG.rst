@@ -2,8 +2,8 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.2 (2015-12-22)
+------------------
 * Connection/reconnection fix.
   This catches another serial failure mode, this time where select()
   reports the device as ready to read, but no actual data is returned.
