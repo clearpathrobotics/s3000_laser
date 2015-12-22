@@ -2,6 +2,15 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Connection/reconnection fix.
+  This catches another serial failure mode, this time where select()
+  reports the device as ready to read, but no actual data is returned.
+  This previously manifested as simply being stuck in an unproductive
+  read loop, but now it correctly recovers from this state.
+* Contributors: Mike Purvis
+
 0.1.1 (2015-12-18)
 ------------------
 * Eliminate fixed rate loop, block on data receipt
