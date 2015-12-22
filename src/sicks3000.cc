@@ -123,8 +123,13 @@ int SickS3000::Close()
     // Read controller messages.
     if (serial->ReadPort(cReadBuffer, &read_bytes, 1999) < 0)
     {
-        ROS_ERROR("SickS3000::ReadLaser: Error reading port");
-        return -1;
+      ROS_ERROR("Error reading from port.");
+      return -1;
+    }
+    else if (read_bytes == 0)
+    {
+      ROS_ERROR("No data returned when reading from port.");
+      return -1;
     }
     ROS_DEBUG("RX %d bytes", read_bytes);
 
