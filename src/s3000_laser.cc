@@ -112,7 +112,8 @@ public:
     }
     else
     {
-      ROS_ERROR("Laser Ranger sensor initialization failed.");
+      ROS_ERROR_THROTTLE(10.0, "Laser Ranger sensor initialization failed.");
+      ROS_DEBUG("Laser Ranger sensor initialization failed.");
       connected_ = false;
       diagnostic_.force_update();
       return false;

@@ -81,7 +81,8 @@ int SickS3000::Open()
   // Setup serial device
   if (this->serial->OpenPort2() == SERIAL_ERROR)
   {
-    ROS_ERROR("SickS3000::Open: Error Opening Serial Port");
+    ROS_ERROR_ONCE("SickS3000::Open: Error Opening Serial Port");
+    ROS_DEBUG("SickS3000::Open: Error Opening Serial Port");
     return -1;
   }
 
@@ -109,7 +110,8 @@ int SickS3000::Close()
     // Wait up to 100ms for new data to be available.
     if (!serial->BlockOnRead(100))
     {
-      ROS_ERROR("SickS3000::ReadLaser: Error waiting to read port.");
+      ROS_ERROR_THROTTLE(10.0, "SickS3000::ReadLaser: Error waiting to read port.");
+      ROS_DEBUG("SickS3000::ReadLaser: Error waiting to read port.");
       return -1;
     }
 
