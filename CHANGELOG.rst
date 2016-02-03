@@ -2,8 +2,8 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.3 (2016-02-03)
+------------------
 * Reduce log outputs from error states.
 * Contributors: Mike Purvis
 
