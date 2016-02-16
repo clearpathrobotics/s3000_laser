@@ -63,24 +63,28 @@ public:
 
   double desired_freq_;
 
+  double range_max_;  // [m]
+
   typedef diagnostic_updater::DiagnosedPublisher<sensor_msgs::LaserScan> LaserScanDiagnosedPublisher;
   boost::scoped_ptr<LaserScanDiagnosedPublisher> data_pub_;
 
   s3000node(ros::NodeHandle h) :
     node_handle_(h), private_node_handle_("~"),
-    desired_freq_(16.6),
     connected_(false),
-    getting_data_(false)
+    getting_data_(false),
+    desired_freq_(16.6),
+    range_max_(51.0)  // NOTE datasheet reports 52.0m, but actual is 51.2m
   {
     private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
     private_node_handle_.param("frame_id", frameid_, string("laser"));
+    private_node_handle_.param("range_max", range_max_, range_max_);
 
     scan_msg_.header.frame_id = frameid_;
     scan_msg_.angle_min = static_cast<float>(RADIANS(-95.0));
     scan_msg_.angle_max = static_cast<float>(RADIANS(95.0));
     scan_msg_.angle_increment = static_cast<float>(RADIANS(0.25));
     scan_msg_.range_min = 0;
-    scan_msg_.range_max = 52;  // TODO(mikepurvis): Confirm this value.
+    scan_msg_.range_max = range_max;
 
     diagnostic_.add( "connection status", this, &s3000node::deviceStatus );
 
@@ -213,6 +217,7 @@ public:
 
     status.add("Device", port_);
     status.add("TF Frame", frameid_);
+    status.add("Range max", range_max_);
   }
 };
 
