@@ -2,8 +2,8 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.4 (2016-02-16)
+------------------
 * Set range max from param, better default value.
 * Contributors: Enrique Fernandez
 
