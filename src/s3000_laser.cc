@@ -84,7 +84,7 @@ public:
     scan_msg_.angle_max = static_cast<float>(RADIANS(95.0));
     scan_msg_.angle_increment = static_cast<float>(RADIANS(0.25));
     scan_msg_.range_min = 0;
-    scan_msg_.range_max = range_max;
+    scan_msg_.range_max = range_max_;
 
     diagnostic_.add( "connection status", this, &s3000node::deviceStatus );
 
