@@ -2,8 +2,8 @@
 Changelog for package s3000_laser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.5 (2016-05-09)
+------------------
 * Parameterize frequency warning tolerance, change default from 5% to 20%.
 * Contributors: Mike Purvis
 
