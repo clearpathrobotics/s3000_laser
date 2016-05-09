@@ -79,6 +79,10 @@ public:
     private_node_handle_.param("frame_id", frameid_, string("laser"));
     private_node_handle_.param("range_max", range_max_, range_max_);
 
+    double desired_freq_tolerance = 0.2;
+    private_node_handle_.param("desired_frequency", desired_freq_, desired_freq_);
+    private_node_handle_.param("desired_frequency_tolerance", desired_freq_tolerance, desired_freq_tolerance);
+
     scan_msg_.header.frame_id = frameid_;
     scan_msg_.angle_min = static_cast<float>(RADIANS(-95.0));
     scan_msg_.angle_max = static_cast<float>(RADIANS(95.0));
@@ -90,7 +94,7 @@ public:
 
     data_pub_.reset(new LaserScanDiagnosedPublisher(
           node_handle_.advertise<sensor_msgs::LaserScan>("scan", 1), diagnostic_,
-          diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, 0.05),
+          diagnostic_updater::FrequencyStatusParam(&desired_freq_, &desired_freq_, desired_freq_tolerance),
           diagnostic_updater::TimeStampStatusParam()));
 
     laser_.reset(new SickS3000(port_));
