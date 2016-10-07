@@ -39,7 +39,7 @@
 #include "sensor_msgs/LaserScan.h"
 #include "SerialDevice.h"
 
-#define S3000_DEFAULT_TRANSFERRATE 500000     //
+#define S3000_DEFAULT_TRANSFERRATE 500000
 #define S3000_DEFAULT_PARITY	   "none"
 #define S3000_DEFAULT_DATA_SIZE    8
 
@@ -49,7 +49,7 @@ class SickS3000
   public:
 
     // Constructor
-    SickS3000( std::string port );
+    SickS3000(std::string port);
 
     // Destructor
     ~SickS3000();
@@ -59,15 +59,20 @@ class SickS3000
 
     //! Close the port
     int Close();
+    
+    //! Read the operating data block and SCID of the S3000 for system and error status
+    int getDiagnosticInfo(bool host, uint16_t* scid, uint8_t* seven_seg_first_char, uint8_t* seven_seg_second_char);
+    
+    //! Get the current error cause and suggested action, if an error exists
+    int GetDeviceError(uint8_t first_char, uint8_t second_char, std::string* error, std::string* suggested_action);
 
     //! Read and process data
-    int ReadLaser( sensor_msgs::LaserScan& scan_msg, bool& bValidData ); // public periodic function
+    int ReadLaser(sensor_msgs::LaserScan& scan_msg, bool& bValidData); // public periodic function
 
   private:
 
     // Process range data from laser
-    // int ProcessLaserData();
-    int ProcessLaserData( sensor_msgs::LaserScan& scan_msg, bool& bValidData ); // public periodic function
+    int ProcessLaserData(sensor_msgs::LaserScan& scan_msg, bool& bValidData); // public periodic function
 
     // Calculates CRC for a telegram
     unsigned short CreateCRC(uint8_t *data, ssize_t len);
@@ -100,9 +105,4 @@ class SickS3000
     uint8_t * rx_buffer;
     unsigned int rx_buffer_size;
     unsigned int rx_count;
-
-    // sensor_msgs::LaserScan scan;
-
-  };
-
-
+};
