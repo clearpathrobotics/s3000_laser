@@ -101,11 +101,8 @@ int SickS3000::Close()
 /*----------------------------------------------------------------------------
 ** Laser Scanning
 *---------------------------------------------------------------------------*/
-int SickS3000::ReadLaser(sensor_msgs::LaserScan& scan, bool& bValidData)
+int SickS3000::WaitForScan(sensor_msgs::LaserScan& scan)
 {
-  int read_bytes=0;     // Number of received bytes
-  char cReadBuffer[2000] = "\0";    // Max in 1 read
-
   // Wait up to 100ms for new data to be available.
   if (!serial->BlockOnRead(100))
   {
@@ -116,11 +113,15 @@ int SickS3000::ReadLaser(sensor_msgs::LaserScan& scan, bool& bValidData)
 
   // Data is flowing, get our timestamp.
   scan.header.stamp = ros::Time::now();
+  
+  return 0;
+}
 
-  // Brief pause to allow all data to arrive so we can get it in a single read.
-  // Empirically determined.
-  ros::Duration(0.04).sleep();
-
+int SickS3000::ReadLaser(sensor_msgs::LaserScan& scan, bool& bValidData)
+{
+  int read_bytes=0;     // Number of received bytes
+  char cReadBuffer[2000] = "\0";    // Max in 1 read
+  
   // Read controller messages.
   if (serial->ReadPort(cReadBuffer, &read_bytes, 1999) < 0)
   {
@@ -482,8 +483,9 @@ int SickS3000::getDiagnosticInfo(bool host, uint16_t* scid, uint8_t* seven_seg_f
 
   serial->BlockOnRead(100);
   bytes_read = serial->ReadPort(rx_data);
-  //serial->ReadPort(rx_data, &bytes_read, 64);
-  //ROS_INFO("Reply: %02X %02X %02X %02X", rx_data[0], rx_data[1], rx_data[2], rx_data[3]);
+  ROS_INFO("Host: %d Reply: %02X %02X %02X %02X %02X %02X %02X %02X", 
+    host, rx_data[0], rx_data[1], rx_data[2], rx_data[3],
+    rx_data[4], rx_data[5], rx_data[6], rx_data[7]);
 
   *scid = ((0x00FF & rx_data[35]) << 8) + (0x00FF & rx_data[34]);
   ROS_INFO("SCID: %04X", *scid);
@@ -502,7 +504,7 @@ int SickS3000::getDiagnosticInfo(bool host, uint16_t* scid, uint8_t* seven_seg_f
     {
       reply_index = i;
       read_error = false;
-      ROS_INFO("Found 0x0B @ %d!", reply_index);
+      //ROS_INFO("Found 0x0B @ %d!", reply_index);
       break;
     }
   }
@@ -513,7 +515,7 @@ int SickS3000::getDiagnosticInfo(bool host, uint16_t* scid, uint8_t* seven_seg_f
 
   serial->BlockOnRead(100);
   serial->ReadPort(rx_data, &bytes_read, 4);
-  ROS_INFO("Reply: %02X %02X %02X %02X", rx_data[0], rx_data[1], rx_data[2], rx_data[3]);
+  ROS_INFO("Host: %d Reply: %02X %02X %02X %02X", host, rx_data[0], rx_data[1], rx_data[2], rx_data[3]);
 
   if(read_error)
   {
@@ -523,7 +525,7 @@ int SickS3000::getDiagnosticInfo(bool host, uint16_t* scid, uint8_t* seven_seg_f
   *seven_seg_first_char = static_cast<unsigned char>(rx_data[reply_index+8]);
   *seven_seg_second_char = static_cast<unsigned char>(rx_data[reply_index+9]);
 
-  ROS_INFO("device_state %02X led_code: first %02X second %02X",
+  ROS_INFO("Host: %d device_state: %02X led_code: first %02X second %02X", host,
     (static_cast<unsigned char>(rx_data[reply_index+6]) & 0x03),
     static_cast<unsigned char>(rx_data[reply_index+8]),
     static_cast<unsigned char>(rx_data[reply_index+9]));

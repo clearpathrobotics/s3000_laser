@@ -164,6 +164,9 @@ public:
         // Inner loop runs once per received scan.
         while(ros::ok())
         {
+          laser_->WaitForScan(scan_msg_);
+          ros::Duration(0.04).sleep();
+          
           bool scan_available = false;
           if (laser_->ReadLaser(scan_msg_, scan_available) < 0)
           {

@@ -66,6 +66,9 @@ class SickS3000
     //! Get the current error cause and suggested action, if an error exists
     int GetDeviceError(uint8_t first_char, uint8_t second_char, std::string* error, std::string* suggested_action);
 
+    //! Wait for scan data to read - required call prior to ReadLaser!
+    int WaitForScan(sensor_msgs::LaserScan& scan);
+    
     //! Read and process data
     int ReadLaser(sensor_msgs::LaserScan& scan_msg, bool& bValidData); // public periodic function
 
