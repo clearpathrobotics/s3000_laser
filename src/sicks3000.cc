@@ -504,7 +504,6 @@ int SickS3000::getDiagnosticInfo(bool host, uint16_t* scid, uint8_t* seven_seg_f
     {
       reply_index = i;
       read_error = false;
-      //ROS_INFO("Found 0x0B @ %d!", reply_index);
       break;
     }
   }

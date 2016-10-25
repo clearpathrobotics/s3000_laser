@@ -54,10 +54,18 @@ public:
 
   ros::NodeHandle node_handle_;
   ros::NodeHandle private_node_handle_;
-
+  ros::Subscriber diagnostics_check_sub_;
+  ros::Publisher diagnostics_check_pub_;
+  ros::Time last_diagnostics_read_;
+ 
   //for diagnostics
   bool connected_;
   bool getting_data_;
+  bool enable_diagnostics_;
+  bool host_lidar_;
+  uint16_t scid_;
+  uint8_t seven_seg_first_char_;
+  uint8_t seven_seg_second_char_;
 
   string frameid_;
 
@@ -78,6 +86,8 @@ public:
     private_node_handle_.param("port", port_, string("/dev/ttyUSB0"));
     private_node_handle_.param("frame_id", frameid_, string("laser"));
     private_node_handle_.param("range_max", range_max_, range_max_);
+    private_node_handle_.param("enable_diagnostics", enable_diagnostics_, true);
+    private_node_handle_.param("host_lidar", host_lidar_, true);
 
     double desired_freq_tolerance = 0.2;
     private_node_handle_.param("desired_frequency", desired_freq_, desired_freq_);
@@ -98,7 +108,20 @@ public:
           diagnostic_updater::TimeStampStatusParam()));
 
     laser_.reset(new SickS3000(port_));
-   }
+
+    if(host_lidar_)
+    {
+      diagnostics_check_sub_ = node_handle_.subscribe("s3000/get_host_diagnostics", 1, &s3000node::hostDiagnosticsCheckCallback, this);
+    }
+    else
+    {
+      diagnostics_check_sub_ = node_handle_.subscribe("s3000/get_guest_diagnostics", 1, &s3000node::guestDiagnosticsCheckCallback, this);
+    }
+    scid_ = 0x0000;
+    seven_seg_first_char_ = 0x00;
+    seven_seg_second_char_ = 0x00;
+    diagnostics_check_pub_ = node_handle_.advertise<std_msgs::Bool>("s3000/get_guest_diagnostics", 1, true);
+  }
 
 
   ~s3000node()
@@ -225,6 +248,28 @@ public:
     status.add("Device", port_);
     status.add("TF Frame", frameid_);
     status.add("Range max", range_max_);
+  }
+
+  void hostDiagnosticsCheckCallback(const std_msgs::Bool& msg)
+  {
+    if(enable_diagnostics_)
+    {
+      std_msgs::Bool diag_msg;
+      laser_->getDiagnosticInfo(true, &scid_, &seven_seg_first_char_, &seven_seg_second_char_);
+      last_diagnostics_read_ = ros::Time::now();
+      diagnostic_.force_update();
+      diagnostics_check_pub_.publish(diag_msg);
+    }
+  }
+  
+  void guestDiagnosticsCheckCallback(const std_msgs::Bool& msg)
+  {
+    if(enable_diagnostics_)
+    {
+      laser_->getDiagnosticInfo(false, &scid_, &seven_seg_first_char_, &seven_seg_second_char_);
+      last_diagnostics_read_ = ros::Time::now();
+      diagnostic_.force_update();
+    }
   }
 };
 
